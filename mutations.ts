@@ -52,7 +52,7 @@ export const authMutations = {
       const generatedToken = generateToken()
       args.data.verificationToken = sign(
         { token: generatedToken, created: new Date(), type: 'email' },
-        process.env.APP_SECRET,
+        process.env.API_SECRET,
         {
           expiresIn: '1d',
         },
@@ -93,7 +93,7 @@ export const authMutations = {
       delete user.password
       delete user.verificationToken
       return {
-        token: sign({ id: user.id, role: user.role }, process.env.APP_SECRET, {
+        token: sign({ id: user.id, role: user.role }, process.env.API_SECRET, {
           expiresIn: '30d',
         }),
         user,
@@ -120,7 +120,7 @@ export const authMutations = {
       delete user.password
       delete user.verificationToken
       return {
-        token: sign({ id: user.id, role: user.role }, process.env.APP_SECRET, {
+        token: sign({ id: user.id, role: user.role }, process.env.API_SECRET, {
           expiresIn: '30d',
         }),
         user,
@@ -142,7 +142,7 @@ export const authMutations = {
       const generatedToken = generateToken()
       const verificationToken = sign(
         { token: generatedToken, created: new Date(), type: 'password' },
-        process.env.APP_SECRET,
+        process.env.API_SECRET,
         {
           expiresIn: '1d',
         },
@@ -197,7 +197,7 @@ export const authMutations = {
         return hash
       })
       const verificationToken = user.verificationToken
-        ? verify(user.verificationToken, process.env.APP_SECRET)
+        ? verify(user.verificationToken, process.env.API_SECRET)
         : false
       if (!verificationToken) throw new Error('Invalid token!')
       if (
