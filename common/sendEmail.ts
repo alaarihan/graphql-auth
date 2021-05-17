@@ -14,7 +14,7 @@ export const sendEmail = new Email({
     },
   },
   views: {
-    root: './src/auth/email-templates',
+    root: './src/auth/src/email-templates',
     options: {
       extension: 'ejs',
     },

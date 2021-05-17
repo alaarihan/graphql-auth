@@ -71,7 +71,7 @@ export const authMutations = {
             attachments: [
               {
                 filename: 'logo.png',
-                path: path.resolve('src/email-templates/imgs/logo.png'),
+                path: path.resolve('src/auth/src/email-templates/imgs/logo.png'),
                 cid: 'logo',
               },
             ],
