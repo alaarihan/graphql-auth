@@ -79,7 +79,7 @@ export const authMutations = {
           locals: {
             user,
             token: generatedToken,
-            url: process.env.APP_URL,
+            url: process.env.API_URL,
           },
         })
         .catch(async (err) => {
@@ -168,7 +168,7 @@ export const authMutations = {
           locals: {
             user,
             token: generatedToken,
-            url: process.env.APP_URL,
+            url: process.env.API_URL,
           },
         })
         .catch((err) => {
