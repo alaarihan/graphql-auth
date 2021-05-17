@@ -1,5 +1,5 @@
 import { verify } from 'jsonwebtoken'
-import { prisma } from '../context'
+import { prisma } from '../../context'
 
 module.exports = function (fastify, opts, done) {
   fastify.get('/verify-email/:email/:token', async (req, reply) => {
