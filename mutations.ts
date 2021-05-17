@@ -7,7 +7,7 @@ import {
 } from 'graphql'
 import { hash, compare } from 'bcrypt'
 import { sign, verify } from 'jsonwebtoken'
-import { User } from '../models/User/type'
+import { User } from '../../models/User/type'
 import { GraphQLDateTime, GraphQLEmailAddress } from 'graphql-scalars'
 import { generateToken } from './common/generateToken'
 import path from 'path'
