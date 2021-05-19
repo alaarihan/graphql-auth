@@ -130,7 +130,7 @@ export const authMutations = {
     },
   },
   forgotPassword: {
-    type: GraphQLBoolean,
+    type: new GraphQLNonNull(GraphQLBoolean),
     args: {
       email: { type: new GraphQLNonNull(GraphQLEmailAddress) },
     },
@@ -180,7 +180,7 @@ export const authMutations = {
     },
   },
   resetUserPassword: {
-    type: new GraphQLNonNull(User),
+    type: new GraphQLNonNull(GraphQLBoolean),
     args: {
       email: { type: new GraphQLNonNull(GraphQLEmailAddress) },
       token: { type: new GraphQLNonNull(GraphQLString) },
