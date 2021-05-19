@@ -39,7 +39,7 @@ export const UserSignupInput = new GraphQLInputObjectType({
 
 export const authMutations = {
   signup: {
-    extensions: { model:  'Auth' },
+    extensions: { model: 'Auth' },
     type: new GraphQLNonNull(AuthPayload),
     args: {
       data: { type: new GraphQLNonNull(UserSignupInput) },
@@ -104,7 +104,7 @@ export const authMutations = {
     },
   },
   login: {
-    extensions: { model:  'Auth' },
+    extensions: { model: 'Auth' },
     type: new GraphQLNonNull(AuthPayload),
     args: {
       email: { type: new GraphQLNonNull(GraphQLEmailAddress) },
@@ -132,7 +132,7 @@ export const authMutations = {
     },
   },
   forgotPassword: {
-    extensions: { model:  'Auth' },
+    extensions: { model: 'Auth' },
     type: new GraphQLNonNull(GraphQLBoolean),
     args: {
       email: { type: new GraphQLNonNull(GraphQLEmailAddress) },
@@ -183,7 +183,7 @@ export const authMutations = {
     },
   },
   resetUserPassword: {
-    extensions: { model:  'Auth' },
+    extensions: { model: 'Auth' },
     type: new GraphQLNonNull(GraphQLBoolean),
     args: {
       email: { type: new GraphQLNonNull(GraphQLEmailAddress) },
