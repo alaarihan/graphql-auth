@@ -14,7 +14,6 @@ export const jwtAuth = async (resolve, root, args, context, info) => {
     if (!context.user) {
       throw new Error('Not logged in!')
     }
-    console.log(context.user)
   }
   return resolve(root, args, context, info)
 }
