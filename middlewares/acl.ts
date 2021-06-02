@@ -107,8 +107,6 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
         } else {
           for (let index = 0; index < check[key].length; index++) {
             const checkRes = await checkItem(check[key][index], item, ext, key)
-
-            console.log('OR checkRes', checkRes)
             if (
               (key === 'AND' && checkRes === false) ||
               (key === 'NOT' && checkRes === true)
@@ -119,7 +117,6 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
             }
           }
         }
-        console.log('OR itemsChecks', itemsChecks, check[key].length)
         if (
           key === 'OR' &&
           itemsChecks.filter((i) => i === false).length === check[key].length
@@ -149,7 +146,6 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
           return false
         else if (key === 'some' && ext.permType === 'CREATE') {
           itemsChecks.push(checkRes)
-          console.log('check some op')
 
           // Do some check
         }
@@ -171,7 +167,6 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
         if (checkRes === false) return false
       }
     }
-    console.log('true')
     return true
   }
 
@@ -199,7 +194,6 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
   }
 
   async function checkNestedOps(check, item, ext, op, relMod) {
-    console.log('Check nestedOps', op)
     for (const k in item) {
       if (['connect', 'set', 'disconnect'].includes(k)) {
         if (k === 'disconnect' && typeof item[k] === 'boolean') {
@@ -316,8 +310,6 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
         .catch((err) => {
           console.log(err)
         })
-
-      console.log('finalWhere', finalWhere, finalItems)
 
       if (!finalItems || finalItems < originalItems) return false
     }
@@ -534,7 +526,6 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
       'set',
     ]
     for (const key in data) {
-      console.log('key', key)
       if (
         typeof data[key] === 'object' &&
         Object.keys(data[key]).some((someKey) => itemOps.includes(someKey))
