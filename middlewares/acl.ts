@@ -674,17 +674,6 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
     }
   }
 
-  async function checkItemExistBeforeAndAfterCheckByModel(where, check, model) {
-    const itemExistsBeforeCheck = await itemsExist({}, where, model)
-    if (itemExistsBeforeCheck) {
-      const itemExistsAfterCheck = await itemsExist(check, where, model)
-      if (!itemExistsAfterCheck) {
-        return false
-      }
-    }
-    return true
-  }
-
   return resolve(root, args, ctx, info).catch((err) => console.log(err))
 }
 
