@@ -28,6 +28,10 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
       console.log(err)
     })
 
+  if (args.select) {
+    args.select = mergeNestedModelCheckWithWhere(args.select, ext)
+  }
+
   if (['updateOne', 'findUnique'].includes(ext.op)) {
     await checkModelItemsExist(args.where, ext)
   }
@@ -154,9 +158,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
         typeof item[key] === 'object'
       ) {
         const currentModel = relMod ? relMod : ext.model
-        const relModel = dmmf.datamodel.models
-          .find((i) => i.name === currentModel)
-          ?.fields?.find((f) => f.name === key)?.type
+        const relModel = getNestedFieldModelName(currentModel, key)
         const checkRes = await checkItem(
           check[key],
           item[key],
@@ -377,9 +379,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
     data = setPermValuesOneLevel(data, ext)
     for (const key in data) {
       if (Object.keys(data[key]).some((someKey) => itemOps.includes(someKey))) {
-        const relModel = dmmf.datamodel.models
-          .find((i) => i.name === ext.model)
-          ?.fields?.find((f) => f.name === key)?.type
+        const relModel = getNestedFieldModelName(ext.model, key)
         for (const op in data[key]) {
           if (op === 'create') {
             const relExt = {
@@ -530,9 +530,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
         typeof data[key] === 'object' &&
         Object.keys(data[key]).some((someKey) => itemOps.includes(someKey))
       ) {
-        const relModel = dmmf.datamodel.models
-          .find((i) => i.name === ext.model)
-          ?.fields?.find((f) => f.name === key)?.type
+        const relModel = getNestedFieldModelName(ext.model, key)
         for (const op in data[key]) {
           if (op === 'create') {
             const relExt = {
@@ -674,6 +672,41 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
     }
   }
 
+  function mergeNestedModelCheckWithWhere(select, ext) {
+    for (const key in select) {
+      if (typeof select[key] === 'object' && select[key].select) {
+        const relModel = getNestedFieldModelName(ext.model, key)
+        if (relModel) {
+          const isList = dmmf.datamodel.models
+            .find((i) => i.name === ext.model)
+            ?.fields?.find((f) => f.name === key)?.isList
+          if (isList) {
+            const modelPerm = modelPermByType(rolePerms, relModel, 'READ')
+            if (modelPerm?.def?.check) {
+              if (!select[key].where) {
+                select[key].where = {}
+              }
+              const permCheck = getCtxValuesForPerm(modelPerm.def.check, ctx)
+              select[key].where = mergeCheckWithWhere(
+                select[key].where,
+                permCheck,
+              )
+            }
+          }
+          select[key].select = mergeNestedModelCheckWithWhere(
+            select[key].select,
+            {
+              model: relModel,
+              permType: 'READ',
+            },
+          )
+        }
+      }
+    }
+
+    return select
+  }
+
   return resolve(root, args, ctx, info).catch((err) => console.log(err))
 }
 
@@ -701,10 +734,17 @@ function uniqueWhereToManyWhere(where) {
 }
 
 function mergeCheckWithWhere(where, check) {
+  if (where === undefined) return where
   if (where.AND) {
     where.AND.push(check)
   } else {
     where.AND = [check]
   }
   return where
+}
+
+function getNestedFieldModelName(model, fieldName) {
+  return dmmf.datamodel.models
+    .find((i) => i.name === model)
+    ?.fields?.find((f) => f.name === fieldName)?.type
 }
