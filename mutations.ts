@@ -12,6 +12,7 @@ import { GraphQLDateTime, GraphQLEmailAddress } from 'graphql-scalars'
 import { generateToken } from './common/generateToken'
 import path from 'path'
 import { sendEmail } from './common/sendEmail'
+import { setTokenCookie } from '../../context'
 
 export const AuthPayload = new GraphQLObjectType({
   name: 'AuthPayload',
@@ -95,10 +96,10 @@ export const authMutations = {
         })
       delete user.password
       delete user.verificationToken
+
+      const token = setSessionCookiesTokens(user, ctx.reply )
       return {
-        token: sign({ id: user.id, role: user.role }, process.env.API_SECRET, {
-          expiresIn: '30d',
-        }),
+        token,
         user,
       }
     },
@@ -123,10 +124,10 @@ export const authMutations = {
       }
       delete user.password
       delete user.verificationToken
+
+      const token = setSessionCookiesTokens(user, ctx.reply)
       return {
-        token: sign({ id: user.id, role: user.role }, process.env.API_SECRET, {
-          expiresIn: '30d',
-        }),
+        token,
         user,
       }
     },
@@ -225,4 +226,24 @@ export const authMutations = {
       return true
     },
   },
+}
+
+function setSessionCookiesTokens(user, reply) {
+  const token = setTokenCookie(user, reply)
+  const refreshToken = sign(
+    { id: user.id, role: user.role },
+    process.env.API_SECRET,
+    {
+      expiresIn: '15d',
+    },
+  )
+  reply.setCookie('refresh_token', String(refreshToken), {
+    path: '/',
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    maxAge: 60 * 60 * 24 * 14, // 14 days
+  })
+
+  return token
 }
