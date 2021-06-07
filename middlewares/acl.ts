@@ -1,8 +1,8 @@
 const { dmmf } = require('@prisma/client')
 import { merge } from 'lodash'
 import { camelCase } from 'change-case'
-import { AppContext, prisma } from '../../../context'
-
+import { AppContext } from '../../../context'
+import { rolesPerms } from '../common/permsCache'
 import { flatten, unflatten } from 'flat'
 
 export const acl = async (resolve, root, args, ctx, info) => {
@@ -18,15 +18,22 @@ export const acl = async (resolve, root, args, ctx, info) => {
 }
 
 async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
-  const rolePerms = await ctx.prisma.permission
+  if(rolesPerms.get( ctx.user.role ) === undefined){
+    await ctx.prisma.permission
     .findMany({
       where: {
         role: { equals: ctx.user.role },
       },
+    }).then(res => {
+      rolesPerms.set( ctx.user.role, res );
     })
     .catch((err) => {
       console.log(err)
+      throw new Error('Something wrong happened!')
     })
+    
+  }
+  const rolePerms = rolesPerms.get( ctx.user.role )
 
   if (args.select) {
     args.select = mergeNestedModelCheckWithWhere(args.select, ext)
