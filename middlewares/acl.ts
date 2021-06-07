@@ -6,11 +6,10 @@ import { rolesPerms } from '../common/permsCache'
 import { flatten, unflatten } from 'flat'
 
 export const acl = async (resolve, root, args, ctx, info) => {
-  const aclTypes = ['Query', 'Mutation']
-  if (ctx.moduleId === 'Auth') return resolve(root, args, ctx, info)
-
-  if (aclTypes.includes(info.path.typename)) {
+  if (['Query', 'Mutation'].includes(info.path.typename)) {
     const ext = info.parentType.getFields()[info.fieldName].extensions
+    if (!ext?.op || ctx.user?.role === 'ADMIN')
+      return resolve(root, args, ctx, info)
     return checkAcl(resolve, root, args, ctx, info, ext)
   } else {
     return resolve(root, args, ctx, info)
@@ -18,22 +17,22 @@ export const acl = async (resolve, root, args, ctx, info) => {
 }
 
 async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
-  if(rolesPerms.get( ctx.user.role ) === undefined){
+  if (rolesPerms.get(ctx.user.role) === undefined) {
     await ctx.prisma.permission
-    .findMany({
-      where: {
-        role: { equals: ctx.user.role },
-      },
-    }).then(res => {
-      rolesPerms.set( ctx.user.role, res );
-    })
-    .catch((err) => {
-      console.log(err)
-      throw new Error('Something wrong happened!')
-    })
-    
+      .findMany({
+        where: {
+          role: { equals: ctx.user.role },
+        },
+      })
+      .then((res) => {
+        rolesPerms.set(ctx.user.role, res)
+      })
+      .catch((err) => {
+        console.log(err)
+        throw new Error('Something wrong happened!')
+      })
   }
-  const rolePerms = rolesPerms.get( ctx.user.role )
+  const rolePerms = rolesPerms.get(ctx.user.role)
 
   if (args.select) {
     args.select = mergeNestedModelCheckWithWhere(args.select, ext)
