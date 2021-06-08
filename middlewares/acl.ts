@@ -2,6 +2,7 @@ const { dmmf } = require('@prisma/client')
 import { merge } from 'lodash'
 import { camelCase } from 'change-case'
 import { AppContext } from '../../../context'
+import { prisma } from '../../../prisma'
 import { getRolePerms } from '../common/rolePerms'
 import { flatten, unflatten } from 'flat'
 
@@ -24,7 +25,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
   }
 
   if (['updateOne', 'findUnique'].includes(ext.op)) {
-    await checkModelItemsExist(args.where, ext)
+    await checkModelItemsExist(args.where, ctx, ext)
   }
 
   if (
@@ -45,7 +46,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
     await checkItemACL(args.data, ext)
     args.data = await checkNestedFieldsModelsACL(args.data, ext)
   } else if (ext.op === 'deleteOne') {
-    await checkModelItemsExist(args.where, ext)
+    await checkModelItemsExist(args.where, ctx, ext)
   } else if (ext.op === 'createMany') {
     args.data.forEach(async (_item, index) => {
       args.data[index] = setPermValuesOneLevel(args.data[index], ext)
@@ -63,7 +64,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
     if (modelPerm?.def?.check) {
       const itemExistsBeforeCheck = await itemsExist({}, args.update, ext.model)
       if (itemExistsBeforeCheck) {
-        await checkModelItemsExist(args.update, ext)
+        await checkModelItemsExist(args.update, ctx, ext)
       }
     }
     args.update = setPermValuesOneLevel(args.update, ext)
@@ -268,48 +269,6 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
     return true
   }
 
-  async function itemsExist(check, item, model) {
-    let originalWhere
-    if (!Array.isArray(item)) {
-      originalWhere = uniqueWhereToManyWhere(item)
-      const finalWhere = mergeCheckWithWhere(originalWhere, check)
-      const finalItems = await ctx.prisma[camelCase(model)]
-        .count({
-          where: finalWhere,
-        })
-        .catch((err) => {
-          console.log(err)
-        })
-      if (!finalItems) return false
-    } else {
-      originalWhere = { OR: [] }
-      item.forEach((i) => {
-        const andWhere = uniqueWhereToManyWhere(i)
-        originalWhere.OR.push(andWhere)
-      })
-
-      const originalItems = await ctx.prisma[camelCase(model)]
-        .count({
-          where: originalWhere,
-        })
-        .catch((err) => {
-          console.log(err)
-        })
-      const finalWhere = mergeCheckWithWhere(originalWhere, check)
-      const finalItems = await ctx.prisma[camelCase(model)]
-        .count({
-          where: finalWhere,
-        })
-        .catch((err) => {
-          console.log(err)
-        })
-
-      if (!finalItems || finalItems < originalItems) return false
-    }
-
-    return true
-  }
-
   function setPermValuesOneLevel(data, ext) {
     const modelPerm = modelPermByType(rolePerms, ext.model, ext.permType)
     if (modelPerm?.def?.set) {
@@ -328,22 +287,6 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
         throw new Error(
           `The item/s not exist or you don't have permission to ${ext.permType} it`,
         )
-      }
-    }
-    return true
-  }
-
-  async function checkModelItemsExist(data, ext, thrw = true) {
-    const modelPerm = modelPermByType(rolePerms, ext.model, ext.permType)
-    if (modelPerm?.def?.check) {
-      const permCheck = getCtxValuesForPerm(modelPerm.def.check, ctx)
-      const existingTtem = await itemsExist(permCheck, data, ext.model)
-      if (!existingTtem && thrw) {
-        throw new Error(
-          `The item/s not exist or you don't have permission to ${ext.permType} it`,
-        )
-      } else if (!existingTtem && !thrw) {
-        return false
       }
     }
     return true
@@ -549,7 +492,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
               permType: 'UPDATE',
             }
             if (data[key][op].where) {
-              await checkModelItemsExist(data[key][op].where, relExt)
+              await checkModelItemsExist(data[key][op].where, ctx, relExt)
             }
             await checkItemACL(data[key][op].data, relExt)
             data[key][op].data = await checkNestedFieldsModelsACL(
@@ -561,7 +504,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
               model: relModel,
               permType: 'DELETE',
             }
-            await checkModelItemsExist(data[key][op].where, relExt)
+            await checkModelItemsExist(data[key][op].where, ctx, relExt)
           } else if (op === 'createMany') {
             data[key][op].forEach(async (_item, index) => {
               await checkItemACL(data[key][op].data[index], {
@@ -633,7 +576,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
               model: relModel,
               permType: 'READ',
             }
-            await checkModelItemsExist(data[key][op], relExt)
+            await checkModelItemsExist(data[key][op], ctx, relExt)
           }
         }
       }
@@ -658,7 +601,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
     if (modelPerm?.def?.check) {
       const itemExistsBeforeCheck = await itemsExist({}, item.where, ext.model)
       if (itemExistsBeforeCheck) {
-        await checkModelItemsExist(item.where, ext)
+        await checkModelItemsExist(item.where, ctx, ext)
       }
     }
   }
@@ -724,7 +667,7 @@ function uniqueWhereToManyWhere(where) {
   return finalWhere
 }
 
-function mergeCheckWithWhere(where, check) {
+export function mergeCheckWithWhere(where, check) {
   if (where === undefined) return where
   if (where.AND) {
     where.AND.push(check)
@@ -738,4 +681,63 @@ function getNestedFieldModelName(model, fieldName) {
   return dmmf.datamodel.models
     .find((i) => i.name === model)
     ?.fields?.find((f) => f.name === fieldName)?.type
+}
+
+async function itemsExist(check, item, model) {
+  let originalWhere
+  if (!Array.isArray(item)) {
+    originalWhere = uniqueWhereToManyWhere(item)
+    const finalWhere = mergeCheckWithWhere(originalWhere, check)
+    const finalItems = await prisma[camelCase(model)]
+      .count({
+        where: finalWhere,
+      })
+      .catch((err) => {
+        console.log(err)
+      })
+    if (!finalItems) return false
+  } else {
+    originalWhere = { OR: [] }
+    item.forEach((i) => {
+      const andWhere = uniqueWhereToManyWhere(i)
+      originalWhere.OR.push(andWhere)
+    })
+
+    const originalItems = await prisma[camelCase(model)]
+      .count({
+        where: originalWhere,
+      })
+      .catch((err) => {
+        console.log(err)
+      })
+    const finalWhere = mergeCheckWithWhere(originalWhere, check)
+    const finalItems = await prisma[camelCase(model)]
+      .count({
+        where: finalWhere,
+      })
+      .catch((err) => {
+        console.log(err)
+      })
+
+    if (!finalItems || finalItems < originalItems) return false
+  }
+
+  return true
+}
+
+export async function checkModelItemsExist(data, ctx, ext, thrw = true) {
+  const rolePerms = await getRolePerms(ctx.user.role)
+  const modelPerm = modelPermByType(rolePerms, ext.model, ext.permType)
+  if (modelPerm?.def?.check) {
+    const permCheck = getCtxValuesForPerm(modelPerm.def.check, ctx)
+    const existingTtem = await itemsExist(permCheck, data, ext.model)
+    if (!existingTtem && thrw) {
+      throw new Error(
+        `The item/s not exist or you don't have permission to ${ext.permType} it`,
+      )
+    } else if (!existingTtem && !thrw) {
+      return false
+    }
+  }
+  return true
 }
