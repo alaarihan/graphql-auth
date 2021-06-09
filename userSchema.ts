@@ -14,7 +14,7 @@ import pluralize from 'pluralize'
 import { getRolePerms } from './common/rolePerms'
 
 export async function getRoleSchema(schema: GraphQLSchema, role) {
-  let perms = await getRolePerms(role) || []
+  const perms = await getRolePerms(role) || []
   const schemaFilters = getRoleSchemaTransformations(perms)
   const modSchema = applySchemaTransforms(schema, {
     schema,
