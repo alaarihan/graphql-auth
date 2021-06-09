@@ -132,6 +132,35 @@ export const authMutations = {
       }
     },
   },
+  logout: {
+    extensions: { preventRoles: ['UNAUTHORIZED'] },
+    type: new GraphQLNonNull(GraphQLBoolean),
+    async resolve(_root, args, ctx) {
+      logout(ctx.reply)
+      return true
+    },
+  },
+  loginByAdminSecret: {
+    extensions: { allowRoles: ['UNAUTHORIZED'] },
+    type: new GraphQLNonNull(GraphQLBoolean),
+    args: {
+      secret: { type: new GraphQLNonNull(GraphQLString) },
+    },
+    async resolve(_root, args, ctx) {
+      if (args.secret === process.env.ADMIN_SECRET) {
+        ctx.reply.setCookie('admin_secret', String(args.secret), {
+          path: '/',
+          httpOnly: true,
+          secure: true,
+          sameSite: 'none',
+          maxAge: 60 * 60 * 24 * 14, // 14 days
+        })
+        return true
+      } else {
+        return false
+      }
+    },
+  },
   forgotPassword: {
     extensions: { allowRoles: ['UNAUTHORIZED'] },
     type: new GraphQLNonNull(GraphQLBoolean),
@@ -244,6 +273,16 @@ function setSessionCookiesTokens(user, reply) {
     sameSite: 'none',
     maxAge: 60 * 60 * 24 * 14, // 14 days
   })
-
   return token
+}
+
+function logout(reply) {
+  const cookieOptions = {
+    path: '/',
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+  }
+  reply.clearCookie('refresh_token', cookieOptions)
+  reply.clearCookie('authorization', cookieOptions)
 }
