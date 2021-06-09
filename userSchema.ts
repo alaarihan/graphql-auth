@@ -14,7 +14,7 @@ import pluralize from 'pluralize'
 import { getRolePerms } from './common/rolePerms'
 
 export async function getRoleSchema(schema: GraphQLSchema, role) {
-  const perms = await getRolePerms(role) || []
+  const perms = (await getRolePerms(role)) || []
   const schemaFilters = getRoleSchemaTransformations(perms)
   const modSchema = applySchemaTransforms(schema, {
     schema,
@@ -32,7 +32,15 @@ export async function getRoleSchema(schema: GraphQLSchema, role) {
         )
       }),
       new FilterRootFields((operationName, fieldName, fieldConfig) => {
-        return !schemaFilters.rootFields.includes(fieldName)
+        return (
+          ((fieldConfig.extensions?.preventRoles === undefined &&
+            fieldConfig.extensions?.allowRoles === undefined) ||
+            (fieldConfig.extensions?.preventRoles !== undefined &&
+              !fieldConfig.extensions?.preventRoles?.includes(role)) ||
+            (fieldConfig.extensions?.allowRoles !== undefined &&
+              fieldConfig.extensions?.allowRoles?.includes(role))) &&
+          !schemaFilters.rootFields.includes(fieldName)
+        )
       }),
       new FilterObjectFields((typeName, fieldName, fieldConfig) => {
         return (
@@ -323,12 +331,12 @@ function getFilteredInputsFields(modelsFields: ModelFieldsByPermType) {
         if (model.ops?.createMany) {
           // Filter nested "createMany"
           const nestedUpdateFields = dmmf.schema.inputObjectTypes.prisma
-          .filter((item) => {
-            return [
-              `${model.model}CreateMany`,
-              `${model.model}UpdateManyWithout`,
-            ].some((someItem) => item.name.startsWith(someItem))
-          })
+            .filter((item) => {
+              return [
+                `${model.model}CreateMany`,
+                `${model.model}UpdateManyWithout`,
+              ].some((someItem) => item.name.startsWith(someItem))
+            })
             .map((item) => item.name)
           inputsFields.push({
             inputs: nestedUpdateFields,
@@ -366,10 +374,10 @@ function getFilteredInputsFields(modelsFields: ModelFieldsByPermType) {
         if (model.ops?.deleteMany) {
           // Filter nested "deleteMany"
           const nestedUpdateFields = dmmf.schema.inputObjectTypes.prisma
-          .filter((item) => {
-            const opName = `${model.model}UpdateManyWithout`
-            return item.name.startsWith(opName)
-          })
+            .filter((item) => {
+              const opName = `${model.model}UpdateManyWithout`
+              return item.name.startsWith(opName)
+            })
             .map((item) => item.name)
           inputsFields.push({
             inputs: nestedUpdateFields,
@@ -633,12 +641,12 @@ function getFilteredInputsOpsFields(perms) {
                   [
                     `${objectsOps[field].model}CreateNestedManyWithout${item.model}Input`,
                     `${objectsOps[field].model}CreateNestedOneWithout${item.model}Input`,
-                    `${objectsOps[field].model}CreateNestedManyWithout${pluralize(
-                      item.model,
-                    )}Input`,
-                    `${objectsOps[field].model}CreateNestedOneWithout${pluralize(
-                      item.model,
-                    )}Input`,
+                    `${
+                      objectsOps[field].model
+                    }CreateNestedManyWithout${pluralize(item.model)}Input`,
+                    `${
+                      objectsOps[field].model
+                    }CreateNestedOneWithout${pluralize(item.model)}Input`,
                   ].some((someItem) => input.name.startsWith(someItem)),
                 )
                 .map((item) => item.name)
@@ -666,14 +674,16 @@ function getFilteredModelsOpsRootFields(filteredModelsFields) {
         rootFields.push(`${opName}Many${item.model}`)
       }
       if (type === 'read') {
-        if(itemOps.aggregate){
+        if (itemOps.aggregate) {
           rootFields.push(`aggregate${item.model}`)
         }
-        if(itemOps.count){
+        if (itemOps.count) {
           rootFields.push(`count${item.model}`)
         }
-        if(itemOps.subscription){
-          rootFields.push(item.model.charAt(0).toLowerCase() + item.model.slice(1))
+        if (itemOps.subscription) {
+          rootFields.push(
+            item.model.charAt(0).toLowerCase() + item.model.slice(1),
+          )
         }
       }
     })
