@@ -11,11 +11,10 @@ import {
 } from 'graphql-tools'
 
 import pluralize from 'pluralize'
+import { getRolePerms } from './common/rolePerms'
 
-export function getUserSchema(schema: GraphQLSchema, perms) {
-  if (!perms) {
-    perms = []
-  }
+export async function getRoleSchema(schema: GraphQLSchema, role) {
+  let perms = await getRolePerms(role) || []
   const schemaFilters = getRoleSchemaTransformations(perms)
   const modSchema = applySchemaTransforms(schema, {
     schema,

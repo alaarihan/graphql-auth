@@ -97,7 +97,7 @@ export const authMutations = {
       delete user.password
       delete user.verificationToken
 
-      const token = setSessionCookiesTokens(user, ctx.reply )
+      const token = setSessionCookiesTokens(user, ctx.reply)
       return {
         token,
         user,
