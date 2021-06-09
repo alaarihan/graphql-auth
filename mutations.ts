@@ -285,4 +285,5 @@ function logout(reply) {
   }
   reply.clearCookie('refresh_token', cookieOptions)
   reply.clearCookie('authorization', cookieOptions)
+  reply.clearCookie('admin_secret', cookieOptions)
 }
