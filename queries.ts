@@ -35,6 +35,7 @@ export const ModelFieldWhereInput = new GraphQLInputObjectType({
     name: { type: SimpleStringFilter },
     kind: { type: GraphQLString },
     type: { type: GraphQLString },
+    isList: { type: GraphQLBoolean },
   }),
 })
 export const ModelField = new GraphQLObjectType({
@@ -48,6 +49,9 @@ export const ModelField = new GraphQLObjectType({
     },
     kind: {
       type: new GraphQLNonNull(GraphQLString),
+    },
+    isList: {
+      type: new GraphQLNonNull(GraphQLBoolean),
     },
   }),
 })
@@ -84,6 +88,9 @@ export const Model = new GraphQLObjectType({
         }
         if (args.where?.type) {
           fields = fields.filter((field) => field.type === args.where.type)
+        }
+        if (args.where?.isList) {
+          fields = fields.filter((field) => field.isList === args.where.isList)
         }
         return fields
       },
