@@ -147,8 +147,8 @@ export const authMutations = {
       secret: { type: new GraphQLNonNull(GraphQLString) },
     },
     async resolve(_root, args, ctx) {
-      if (args.secret === process.env.ADMIN_SECRET) {
-        ctx.reply.setCookie('admin_secret', String(args.secret), {
+      if (args.secret === process.env.ROOT_SECRET) {
+        ctx.reply.setCookie('root_secret', String(args.secret), {
           path: '/',
           httpOnly: true,
           secure: true,
@@ -285,5 +285,5 @@ function logout(reply) {
   }
   reply.clearCookie('refresh_token', cookieOptions)
   reply.clearCookie('authorization', cookieOptions)
-  reply.clearCookie('admin_secret', cookieOptions)
+  reply.clearCookie('root_secret', cookieOptions)
 }

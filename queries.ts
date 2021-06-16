@@ -100,7 +100,7 @@ export const Model = new GraphQLObjectType({
 
 export const authQueries = {
   findManyModel: {
-    extensions: { allowRoles: ['ADMIN'] },
+    extensions: { allowRoles: ['ROOT'] },
     type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(Model))),
     args: {
       where: { type: ModelWhereInput },
@@ -124,7 +124,7 @@ export const authQueries = {
     },
   },
   findUserRoles: {
-    extensions: { allowRoles: ['ADMIN'] },
+    extensions: { allowRoles: ['ROOT'] },
     type: new GraphQLNonNull(
       new GraphQLList(new GraphQLNonNull(GraphQLString)),
     ),

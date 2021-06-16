@@ -9,7 +9,7 @@ import { flatten, unflatten } from 'flat'
 export const acl = async (resolve, root, args, ctx, info) => {
   if (['Query', 'Mutation'].includes(info.path.typename)) {
     const ext = info.parentType.getFields()[info.fieldName].extensions
-    if (!ext?.op || ctx.user?.role === 'ADMIN')
+    if (!ext?.op || ctx.user?.role === 'ROOT')
       return resolve(root, args, ctx, info)
     return checkAcl(resolve, root, args, ctx, info, ext)
   } else {
