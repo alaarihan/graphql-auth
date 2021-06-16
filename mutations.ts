@@ -140,7 +140,7 @@ export const authMutations = {
       return true
     },
   },
-  loginByAdminSecret: {
+  loginByRootSecret: {
     extensions: { allowRoles: ['UNAUTHORIZED'] },
     type: new GraphQLNonNull(GraphQLBoolean),
     args: {
