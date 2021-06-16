@@ -8,6 +8,7 @@ export async function getRolePerms(role) {
       .findMany({
         where: {
           role: { equals: role },
+          active: { equals: true },
         },
       })
       .then((res) => {
