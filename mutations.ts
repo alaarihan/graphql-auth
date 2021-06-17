@@ -54,7 +54,7 @@ export const authMutations = {
       const generatedToken = generateToken()
       args.data.verificationToken = sign(
         { token: generatedToken, created: new Date(), type: 'email' },
-        process.env.API_SECRET,
+        process.env.JWT_SECRET,
         {
           expiresIn: '1d',
         },
@@ -177,7 +177,7 @@ export const authMutations = {
       const generatedToken = generateToken()
       const verificationToken = sign(
         { token: generatedToken, created: new Date(), type: 'password' },
-        process.env.API_SECRET,
+        process.env.JWT_SECRET,
         {
           expiresIn: '1d',
         },
@@ -233,7 +233,7 @@ export const authMutations = {
         return hash
       })
       const verificationToken = user.verificationToken
-        ? verify(user.verificationToken, process.env.API_SECRET)
+        ? verify(user.verificationToken, process.env.JWT_SECRET)
         : false
       if (!verificationToken) throw new Error('Invalid token!')
       if (
@@ -261,7 +261,7 @@ function setSessionCookiesTokens(user, reply) {
   const token = setTokenCookie(user, reply)
   const refreshToken = sign(
     { id: user.id, role: user.role },
-    process.env.API_SECRET,
+    process.env.JWT_SECRET,
     {
       expiresIn: '15d',
     },

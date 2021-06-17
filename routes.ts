@@ -12,7 +12,7 @@ module.exports = function (fastify, opts, done) {
         .send(`No account found for this email address: ${email}`)
     }
     const verificationToken = user.verificationToken
-      ? verify(user.verificationToken, process.env.API_SECRET)
+      ? verify(user.verificationToken, process.env.JWT_SECRET)
       : false
     if (!verificationToken) return reply.status(400).send('Invalid token!')
     if (
