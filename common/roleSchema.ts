@@ -1,7 +1,7 @@
 import { GraphQLSchema } from 'graphql'
 import NodeCache from 'node-cache'
 import { getRoleSchema } from '../roleSchema'
-export const roleSchemaCache = new NodeCache({useClones: false})
+export const roleSchemaCache = new NodeCache({ useClones: false })
 
 export async function getRoleSchemaCache(
   schema: GraphQLSchema,
