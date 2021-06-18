@@ -8,21 +8,8 @@ import {
   GraphQLBoolean,
   GraphQLInputObjectType,
 } from 'graphql'
+import { SimpleStringFilter } from '../../models/inputs'
 
-export const SimpleStringFilter = new GraphQLInputObjectType({
-  name: 'SimpleStringFilter',
-  fields: () => ({
-    equals: {
-      type: GraphQLString,
-    },
-    in: {
-      type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
-    },
-    notIn: {
-      type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
-    },
-  }),
-})
 export const ModelWhereInput = new GraphQLInputObjectType({
   name: 'ModelWhereInput',
   fields: () => ({
