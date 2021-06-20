@@ -106,7 +106,7 @@ export type ModelFields = {
   model: String
   fields: String[]
   ops?: Object
-  objectsOps?: Object
+  objectFieldsOps?: Object
 }
 
 export type InputsFields = {
@@ -267,17 +267,14 @@ function getFilteredModelsFields(perms): ModelFieldsByPermType {
           )
 
           modelObjectFields.forEach((item) => {
-            const field = modelFields.objectsOps
-              ? modelFields.objectsOps[item.name]
-              : {}
+            const field = modelFields.objectFieldsOps
+              ? modelFields.objectFieldsOps[item.name] || []
+              : []
             modelFilteredObjectFieldsOps[item.name] = {
               model: item.type,
-              ops: {
-                connect: !field?.ops?.connect,
-                disconnect: !field?.ops?.disconnect,
-                set: !field?.ops?.set,
-                connectOrCreate: !field?.ops?.connectOrCreate,
-              },
+              ops: ['connect', 'disconnect', 'set', 'connectOrCreate'].filter(
+                (i) => !field?.includes(i),
+              ),
             }
           })
         }
@@ -285,7 +282,7 @@ function getFilteredModelsFields(perms): ModelFieldsByPermType {
           model: model.name,
           fields: modelFilteredFields,
           ops: modelFilteredOps,
-          objectsOps: modelFilteredObjectFieldsOps,
+          objectFieldsOps: modelFilteredObjectFieldsOps,
         })
       }
     })
@@ -506,7 +503,7 @@ function getAllowedModelsPermByType(perms, type): ModelFields[] {
         model: perm.model,
         fields,
         ops: perm.def?.ops,
-        objectsOps: perm.def?.objectsOps,
+        objectFieldsOps: perm.def?.objectFieldsOps,
       }
     })
   return allowedPerm
@@ -584,39 +581,31 @@ function getFilteredInputsOpsFields(perms) {
   for (const type in allowedModelsPerms) {
     if (type === 'update') {
       allowedModelsPerms[type].forEach((item) => {
-        const objectsOps = item.objectsOps
-        if (objectsOps) {
-          for (const field in objectsOps) {
-            const filteredOps = []
-            if (objectsOps[field]?.ops) {
-              Object.keys(objectsOps[field].ops).forEach((item) => {
-                if (objectsOps[field].ops[item]) {
-                  filteredOps.push(item)
-                }
-              })
-            }
-            if (filteredOps?.length) {
+        const objectFieldsOps = item.objectFieldsOps
+        if (objectFieldsOps) {
+          for (const field in objectFieldsOps) {
+            if (objectFieldsOps[field]?.ops?.length) {
               const inputs = dmmf.schema.inputObjectTypes.prisma
                 .filter((input) =>
                   [
-                    `${objectsOps[field].model}UpdateManyWithout${item.model}Input`,
-                    `${objectsOps[field].model}UpdateOneWithout${item.model}Input`,
-                    `${objectsOps[field].model}UpdateOneRequiredWithout${item.model}Input`,
-                    `${objectsOps[field].model}UpdateManyWithout${pluralize(
-                      item.model,
-                    )}Input`,
-                    `${objectsOps[field].model}UpdateOneWithout${pluralize(
+                    `${objectFieldsOps[field].model}UpdateManyWithout${item.model}Input`,
+                    `${objectFieldsOps[field].model}UpdateOneWithout${item.model}Input`,
+                    `${objectFieldsOps[field].model}UpdateOneRequiredWithout${item.model}Input`,
+                    `${
+                      objectFieldsOps[field].model
+                    }UpdateManyWithout${pluralize(item.model)}Input`,
+                    `${objectFieldsOps[field].model}UpdateOneWithout${pluralize(
                       item.model,
                     )}Input`,
                     `${
-                      objectsOps[field].model
+                      objectFieldsOps[field].model
                     }UpdateOneRequiredWithout${pluralize(item.model)}Input`,
                   ].some((someItem) => input.name.startsWith(someItem)),
                 )
                 .map((item) => item.name)
               inputsFields.push({
                 inputs: inputs,
-                fields: filteredOps,
+                fields: objectFieldsOps[field].ops,
               })
             }
           }
@@ -624,35 +613,28 @@ function getFilteredInputsOpsFields(perms) {
       })
     } else if (type === 'create') {
       allowedModelsPerms[type].forEach((item) => {
-        const objectsOps = item.objectsOps
-        if (objectsOps) {
-          for (const field in objectsOps) {
-            const filteredOps = []
-            if (objectsOps[field]?.ops) {
-              Object.keys(objectsOps[field].ops).forEach((item) => {
-                if (objectsOps[field].ops[item]) {
-                  filteredOps.push(item)
-                }
-              })
-            }
-            if (filteredOps?.length) {
+        const objectFieldsOps = item.objectFieldsOps
+        if (objectFieldsOps) {
+          for (const field in objectFieldsOps) {
+            if (objectFieldsOps[field]?.ops?.length) {
+              objectFieldsOps[field]
               const inputs = dmmf.schema.inputObjectTypes.prisma
                 .filter((input) =>
                   [
-                    `${objectsOps[field].model}CreateNestedManyWithout${item.model}Input`,
-                    `${objectsOps[field].model}CreateNestedOneWithout${item.model}Input`,
+                    `${objectFieldsOps[field].model}CreateNestedManyWithout${item.model}Input`,
+                    `${objectFieldsOps[field].model}CreateNestedOneWithout${item.model}Input`,
                     `${
-                      objectsOps[field].model
+                      objectFieldsOps[field].model
                     }CreateNestedManyWithout${pluralize(item.model)}Input`,
                     `${
-                      objectsOps[field].model
+                      objectFieldsOps[field].model
                     }CreateNestedOneWithout${pluralize(item.model)}Input`,
                   ].some((someItem) => input.name.startsWith(someItem)),
                 )
                 .map((item) => item.name)
               inputsFields.push({
                 inputs: inputs,
-                fields: filteredOps,
+                fields: objectFieldsOps[field].ops,
               })
             }
           }
