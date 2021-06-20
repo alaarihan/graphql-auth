@@ -248,16 +248,18 @@ function getFilteredModelsFields(perms): ModelFieldsByPermType {
           .map((item) => item.name)
 
         const opName = type === 'read' ? 'find' : type
-        const modelFilteredOps = {}
-        if (modelFields.ops !== undefined) {
-          modelFilteredOps[`${opName}Many`] = !modelFields.ops[`${opName}Many`]
-        } else {
-          modelFilteredOps[`${opName}Many`] = true
+        let modelFilteredOps = []
+        if (Array.isArray(modelFields.ops) && !modelFields.ops.includes(`${opName}Many`)) {
+          modelFilteredOps.push(`${opName}Many`)
         }
         if (type === 'read') {
-          modelFilteredOps['aggregate'] = !modelFields.ops?.aggregate
-          modelFilteredOps['count'] = !modelFields.ops?.count
-          modelFilteredOps['subscription'] = !modelFields.ops?.subscription
+          if (modelFields.ops?.length) {
+            modelFilteredOps = modelFilteredOps.concat(
+              ['aggregate', 'count', 'subscription'].filter(
+                (i) => !modelFields.ops.includes(i),
+              ),
+            )
+          }
         }
 
         let modelFilteredObjectFieldsOps = {}
@@ -325,7 +327,7 @@ function getFilteredInputsFields(modelsFields: ModelFieldsByPermType) {
           fields: model.fields,
         })
 
-        if (model.ops?.createMany) {
+        if (model.ops?.includes('createMany')) {
           // Filter nested "createMany"
           const nestedUpdateFields = dmmf.schema.inputObjectTypes.prisma
             .filter((item) => {
@@ -354,7 +356,7 @@ function getFilteredInputsFields(modelsFields: ModelFieldsByPermType) {
           inputs: [...nestedInputs, `${model.model}UpdateInput`],
           fields: model.fields,
         })
-        if (model.ops?.updateMany) {
+        if (model.ops?.includes('updateMany')) {
           // Filter nested "updateMany"
           const nestedUpdateFields = dmmf.schema.inputObjectTypes.prisma
             .filter((item) => {
@@ -368,7 +370,7 @@ function getFilteredInputsFields(modelsFields: ModelFieldsByPermType) {
           })
         }
       } else if (type === 'delete') {
-        if (model.ops?.deleteMany) {
+        if (model.ops?.includes('deleteMany')) {
           // Filter nested "deleteMany"
           const nestedUpdateFields = dmmf.schema.inputObjectTypes.prisma
             .filter((item) => {
@@ -652,17 +654,17 @@ function getFilteredModelsOpsRootFields(filteredModelsFields) {
     filteredModelsFields[type].forEach((item) => {
       const itemOps = item.ops
       const opName = type === 'read' ? 'find' : type
-      if (itemOps[`${opName}Many`]) {
+      if (itemOps.includes(`${opName}Many`)) {
         rootFields.push(`${opName}Many${item.model}`)
       }
       if (type === 'read') {
-        if (itemOps.aggregate) {
+        if (itemOps.includes('aggregate')) {
           rootFields.push(`aggregate${item.model}`)
         }
-        if (itemOps.count) {
+        if (itemOps.includes('count')) {
           rootFields.push(`count${item.model}`)
         }
-        if (itemOps.subscription) {
+        if (itemOps.includes('subscription')) {
           rootFields.push(
             item.model.charAt(0).toLowerCase() + item.model.slice(1),
           )
