@@ -12,7 +12,7 @@ import { GraphQLDateTime, GraphQLEmailAddress } from 'graphql-scalars'
 import { generateToken } from './common/generateToken'
 import path from 'path'
 import { sendEmail } from './common/sendEmail'
-import { setTokenCookie } from '../../context'
+import { setTokenCookie } from '../../common/getUserFromRequest'
 
 export const AuthPayload = new GraphQLObjectType({
   name: 'AuthPayload',

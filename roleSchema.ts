@@ -249,7 +249,10 @@ function getFilteredModelsFields(perms): ModelFieldsByPermType {
 
         const opName = type === 'read' ? 'find' : type
         let modelFilteredOps = []
-        if (Array.isArray(modelFields.ops) && !modelFields.ops.includes(`${opName}Many`)) {
+        if (
+          Array.isArray(modelFields.ops) &&
+          !modelFields.ops.includes(`${opName}Many`)
+        ) {
           modelFilteredOps.push(`${opName}Many`)
         }
         if (type === 'read') {
