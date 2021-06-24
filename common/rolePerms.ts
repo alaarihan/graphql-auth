@@ -15,8 +15,8 @@ export async function getRolePerms(role): Promise<any>  {
         rolePermsCache.set(role, res)
       })
       .catch((err) => {
-        console.error(err)
-        throw new Error('Something wrong happened!')
+         console.error(err)
+        throw new Error('Could not get the role permissions!')
       })
   }
 
