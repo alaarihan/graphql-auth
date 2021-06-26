@@ -668,7 +668,7 @@ function uniqueWhereToManyWhere(where) {
 }
 
 export function mergeCheckWithWhere(where, check) {
-  if (where === undefined) return check ? check : where
+  if (where === undefined) return check
   if (where.AND) {
     where.AND.push(check)
   } else {
