@@ -1,4 +1,5 @@
 import { verify } from 'jsonwebtoken'
+import { setTokenCookie } from '../../common/getUserFromRequest'
 import { prisma } from '../../prisma'
 
 module.exports = function (fastify, opts, done) {
@@ -29,6 +30,7 @@ module.exports = function (fastify, opts, done) {
           verificationToken: null,
         },
       })
+      setTokenCookie({ id: user.id, role: 'USER' }, reply)
     } else {
       return reply.status(400).send('Invalid token or email already verified!')
     }
