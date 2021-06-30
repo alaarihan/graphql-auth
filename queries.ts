@@ -85,7 +85,25 @@ export const Model = new GraphQLObjectType({
   }),
 })
 
+export const MePaypload = new GraphQLObjectType({
+  name: 'MePaypload',
+  fields: () => ({
+    id: {
+      type: GraphQLInt,
+    },
+    role: {
+      type: new GraphQLNonNull(GraphQLString),
+    },
+  }),
+})
+
 export const authQueries = {
+  me: {
+    type: new GraphQLNonNull(MePaypload),
+    async resolve(_root, args, ctx) {
+      return ctx.user
+    },
+  },
   findManyModel: {
     extensions: { allowRoles: ['ROOT'] },
     type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(Model))),
