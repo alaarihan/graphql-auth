@@ -256,13 +256,11 @@ function getFilteredModelsFields(perms): ModelFieldsByPermType {
           modelFilteredOps.push(`${opName}Many`)
         }
         if (type === 'read') {
-          if (modelFields.ops?.length) {
-            modelFilteredOps = modelFilteredOps.concat(
-              ['aggregate', 'count', 'subscription'].filter(
-                (i) => !modelFields.ops.includes(i),
-              ),
-            )
-          }
+          modelFilteredOps = modelFilteredOps.concat(
+            ['aggregate', 'count', 'subscription'].filter(
+              (i) => !modelFields.ops.includes(i),
+            ),
+          )
         }
 
         let modelFilteredObjectFieldsOps = {}
@@ -507,8 +505,8 @@ function getAllowedModelsPermByType(perms, type): ModelFields[] {
       return {
         model: perm.model,
         fields,
-        ops: perm.def?.ops,
-        objectFieldsOps: perm.def?.objectFieldsOps,
+        ops: perm.def?.ops || [],
+        objectFieldsOps: perm.def?.objectFieldsOps || {},
       }
     })
   return allowedPerm
