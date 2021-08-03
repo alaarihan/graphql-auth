@@ -7,8 +7,8 @@ import {
   FilterTypes,
   PruneSchema,
   TransformEnumValues,
-  applySchemaTransforms,
-} from 'graphql-tools'
+} from '@graphql-tools/wrap'
+import { applySchemaTransforms } from '@graphql-tools/delegate'
 
 import pluralize from 'pluralize'
 import { getRolePerms } from './common/rolePerms'
