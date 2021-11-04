@@ -11,7 +11,10 @@ import {
 import { applySchemaTransforms } from '@graphql-tools/delegate'
 
 import pluralize from 'pluralize'
+import options from './options'
 import { getRolePerms } from './common/rolePerms'
+
+const queryMap = options.queryMap
 
 export async function getRoleSchema(schema: GraphQLSchema, role) {
   const perms = (await getRolePerms(role)) || []
@@ -189,11 +192,11 @@ function getFilteredRootFieldsFromModels(filteredModels): String[] {
     .filter((item) => filteredModels.includes(item.model))
     .forEach((item) => {
       filteredRootFields = filteredRootFields.concat([
-        `count${item.model}`,
-        item.createMany,
-        item.deleteMany,
-        item.updateMany,
-        item.aggregate,
+        queryMap.createMany(item.model),
+        queryMap.deleteMany(item.model),
+        queryMap.updateMany(item.model),
+        queryMap.aggregate(item.model),
+        queryMap.count(item.model),
       ])
     })
   return filteredRootFields
@@ -552,26 +555,29 @@ function getModelsFilteredOperationsByPermType(
     .forEach((item) => {
       if (type === 'READ') {
         filteredFields = filteredFields.concat([
-          item.findUnique,
-          item.findFirst,
-          item.findMany,
-          item.aggregate,
-          `count${item.model}`,
+          queryMap.findUnique(item.model),
+          queryMap.findFirst(item.model),
+          queryMap.findMany(item.model),
+          queryMap.aggregate(item.model),
+          queryMap.count(item.model),
         ])
       } else if (type === 'CREATE') {
         filteredFields = filteredFields.concat([
-          item.createMany,
-          item.upsert,
-          item.create,
+          queryMap.createMany(item.model),
+          queryMap.upsertOne(item.model),
+          queryMap.createOne(item.model),
         ])
       } else if (type === 'UPDATE') {
         filteredFields = filteredFields.concat([
-          item.update,
-          item.upsert,
-          item.updateMany,
+          queryMap.updateOne(item.model),
+          queryMap.upsertOne(item.model),
+          queryMap.updateMany(item.model),
         ])
       } else if (type === 'DELETE') {
-        filteredFields = filteredFields.concat([item.delete, item.deleteMany])
+        filteredFields = filteredFields.concat([
+          queryMap.deleteOne(item.model),
+          queryMap.deleteMany(item.model),
+        ])
       }
     })
   return filteredFields
@@ -656,19 +662,17 @@ function getFilteredModelsOpsRootFields(filteredModelsFields) {
       const itemOps = item.ops
       const opName = type === 'read' ? 'find' : type
       if (itemOps.includes(`${opName}Many`)) {
-        rootFields.push(`${opName}Many${item.model}`)
+        rootFields.push(queryMap[`${opName}Many`](item.model))
       }
       if (type === 'read') {
         if (itemOps.includes('aggregate')) {
-          rootFields.push(`aggregate${item.model}`)
+          rootFields.push(queryMap.aggregate(item.model))
         }
         if (itemOps.includes('count')) {
-          rootFields.push(`count${item.model}`)
+          rootFields.push(queryMap.count(item.model))
         }
         if (itemOps.includes('subscription')) {
-          rootFields.push(
-            item.model.charAt(0).toLowerCase() + item.model.slice(1),
-          )
+          rootFields.push(queryMap.subscription(item.model))
         }
       }
     })

@@ -2,7 +2,7 @@ import NodeCache from 'node-cache'
 import { prisma } from '../../../prisma'
 export const rolePermsCache = new NodeCache()
 
-export async function getRolePerms(role): Promise<any>  {
+export async function getRolePerms(role): Promise<any> {
   if (rolePermsCache.get(role) === undefined) {
     await prisma.permission
       .findMany({
@@ -15,7 +15,7 @@ export async function getRolePerms(role): Promise<any>  {
         rolePermsCache.set(role, res)
       })
       .catch((err) => {
-         console.error(err)
+        console.error(err)
         throw new Error('Could not get the role permissions!')
       })
   }
