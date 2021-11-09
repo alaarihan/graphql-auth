@@ -41,8 +41,7 @@ export async function getRoleSchema(schema: GraphQLSchema, role) {
             fieldConfig.extensions?.allowRoles === undefined) ||
             (fieldConfig.extensions?.preventRoles !== undefined &&
               !fieldConfig.extensions?.preventRoles?.includes(role)) ||
-            (fieldConfig.extensions?.allowRoles !== undefined &&
-              fieldConfig.extensions?.allowRoles?.includes(role))) &&
+            fieldConfig.extensions?.allowRoles?.includes(role)) &&
             !schemaFilters.rootFields.includes(fieldName))
         )
       }),
@@ -50,8 +49,7 @@ export async function getRoleSchema(schema: GraphQLSchema, role) {
         return (
           operationName !== 'Subscription' ||
           ((fieldConfig.extensions?.allowRoles === undefined ||
-            (fieldConfig.extensions?.allowRoles !== undefined &&
-              fieldConfig.extensions?.allowRoles?.includes(role))) &&
+            fieldConfig.extensions?.allowRoles?.includes(role)) &&
             !schemaFilters.rootSubscriptionFields.includes(fieldName))
         )
       }),
