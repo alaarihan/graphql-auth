@@ -274,7 +274,7 @@ function getFilteredModelsFields(perms): ModelFieldsByPermType {
         }
         if (type === 'read') {
           modelFilteredOps = modelFilteredOps.concat(
-            ['aggregate', 'count', 'subscription'].filter(
+            ['aggregate', 'count', 'subscription', 'findFirst'].filter(
               (i) => !modelFields.ops.includes(i),
             ),
           )
@@ -680,6 +680,9 @@ function getFilteredModelsOpsRootFields(filteredModelsFields) {
         }
         if (itemOps.includes('count')) {
           rootFields.push(queryMap.count(item.model))
+        }
+        if (itemOps.includes('findFirst')) {
+          rootFields.push(queryMap.findFirst(item.model))
         }
       }
     })
