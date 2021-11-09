@@ -36,13 +36,23 @@ export async function getRoleSchema(schema: GraphQLSchema, role) {
       }),
       new FilterRootFields((operationName, fieldName, fieldConfig) => {
         return (
-          ((fieldConfig.extensions?.preventRoles === undefined &&
+          operationName === 'Subscription' ||
+          (((fieldConfig.extensions?.preventRoles === undefined &&
             fieldConfig.extensions?.allowRoles === undefined) ||
             (fieldConfig.extensions?.preventRoles !== undefined &&
               !fieldConfig.extensions?.preventRoles?.includes(role)) ||
             (fieldConfig.extensions?.allowRoles !== undefined &&
               fieldConfig.extensions?.allowRoles?.includes(role))) &&
-          !schemaFilters.rootFields.includes(fieldName)
+            !schemaFilters.rootFields.includes(fieldName))
+        )
+      }),
+      new FilterRootFields((operationName, fieldName, fieldConfig) => {
+        return (
+          operationName !== 'Subscription' ||
+          ((fieldConfig.extensions?.allowRoles === undefined ||
+            (fieldConfig.extensions?.allowRoles !== undefined &&
+              fieldConfig.extensions?.allowRoles?.includes(role))) &&
+            !schemaFilters.rootSubscriptionFields.includes(fieldName))
         )
       }),
       new FilterObjectFields((typeName, fieldName, fieldConfig) => {
@@ -86,6 +96,7 @@ export type SchemaTransformations = {
   types?: String[]
   inputs?: String[]
   rootFields?: String[]
+  rootSubscriptionFields?: String[]
   objectFields?: ModelFields[]
   inputFields?: InputsFields[]
   outputFields?: outputFields[]
@@ -125,6 +136,7 @@ function getRoleSchemaTransformations(perms): SchemaTransformations {
   const transformations: SchemaTransformations = {
     types: [],
     rootFields: [],
+    rootSubscriptionFields: [],
     inputs: [],
     objectFields: [],
     inputFields: [],
@@ -148,6 +160,12 @@ function getRoleSchemaTransformations(perms): SchemaTransformations {
     ]
     transformations.rootFields =
       transformations.rootFields.concat(filteredRootFields)
+    const filteredSubscriptionsRootOps =
+      getFilteredSubscriptionsRootFields(filteredModelsFields)
+    transformations.rootSubscriptionFields =
+      transformations.rootSubscriptionFields.concat(
+        filteredSubscriptionsRootOps,
+      )
 
     const filteredInputs = [
       ...getFilteredInputsFromModels(filteredModels),
@@ -188,17 +206,15 @@ function getFilteredModels(perms): String[] {
 // Just the rest of the fields that haven't removed when removing the type
 function getFilteredRootFieldsFromModels(filteredModels): String[] {
   let filteredRootFields: String[] = []
-  dmmf.mappings.modelOperations
-    .filter((item) => filteredModels.includes(item.model))
-    .forEach((item) => {
-      filteredRootFields = filteredRootFields.concat([
-        queryMap.createMany(item.model),
-        queryMap.deleteMany(item.model),
-        queryMap.updateMany(item.model),
-        queryMap.aggregate(item.model),
-        queryMap.count(item.model),
-      ])
-    })
+  filteredModels.forEach((item) => {
+    filteredRootFields = filteredRootFields.concat([
+      queryMap.createMany(item),
+      queryMap.deleteMany(item),
+      queryMap.updateMany(item),
+      queryMap.aggregate(item),
+      queryMap.count(item),
+    ])
+  })
   return filteredRootFields
 }
 
@@ -546,37 +562,33 @@ function getModelsFilteredOperationsByPermType(
 ): String[] {
   let filteredFields: String[] = []
 
-  dmmf.mappings.modelOperations
-    .filter(
-      (op) =>
-        !filteredModels.includes(op.model) &&
-        models.some((item) => item === op.model),
-    )
+  models
+    .filter((model) => !filteredModels.includes(model))
     .forEach((item) => {
       if (type === 'READ') {
         filteredFields = filteredFields.concat([
-          queryMap.findUnique(item.model),
-          queryMap.findFirst(item.model),
-          queryMap.findMany(item.model),
-          queryMap.aggregate(item.model),
-          queryMap.count(item.model),
+          queryMap.findUnique(item),
+          queryMap.findFirst(item),
+          queryMap.findMany(item),
+          queryMap.aggregate(item),
+          queryMap.count(item),
         ])
       } else if (type === 'CREATE') {
         filteredFields = filteredFields.concat([
-          queryMap.createMany(item.model),
-          queryMap.upsertOne(item.model),
-          queryMap.createOne(item.model),
+          queryMap.createMany(item),
+          queryMap.upsertOne(item),
+          queryMap.createOne(item),
         ])
       } else if (type === 'UPDATE') {
         filteredFields = filteredFields.concat([
-          queryMap.updateOne(item.model),
-          queryMap.upsertOne(item.model),
-          queryMap.updateMany(item.model),
+          queryMap.updateOne(item),
+          queryMap.upsertOne(item),
+          queryMap.updateMany(item),
         ])
       } else if (type === 'DELETE') {
         filteredFields = filteredFields.concat([
-          queryMap.deleteOne(item.model),
-          queryMap.deleteMany(item.model),
+          queryMap.deleteOne(item),
+          queryMap.deleteMany(item),
         ])
       }
     })
@@ -655,7 +667,7 @@ function getFilteredInputsOpsFields(perms) {
 }
 
 function getFilteredModelsOpsRootFields(filteredModelsFields) {
-  // Remove "findMany",  "createMany", "updateMany", "deleteMany", "aggregate" and "subscription" by perms ops
+  // Remove "findMany",  "createMany", "updateMany", "deleteMany" and "aggregate" by perms ops
   const rootFields = []
   for (const type in filteredModelsFields) {
     filteredModelsFields[type].forEach((item) => {
@@ -671,11 +683,21 @@ function getFilteredModelsOpsRootFields(filteredModelsFields) {
         if (itemOps.includes('count')) {
           rootFields.push(queryMap.count(item.model))
         }
-        if (itemOps.includes('subscription')) {
-          rootFields.push(queryMap.subscription(item.model))
-        }
       }
     })
   }
+  return rootFields
+}
+
+function getFilteredSubscriptionsRootFields(filteredModelsFields) {
+  // Remove "subscription" by perms ops
+  const rootFields = []
+  filteredModelsFields['read'].forEach((item) => {
+    const itemOps = item.ops
+    if (itemOps.includes('subscription')) {
+      rootFields.push(queryMap.subscription(item.model))
+    }
+  })
+
   return rootFields
 }
