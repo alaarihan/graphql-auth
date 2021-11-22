@@ -272,7 +272,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
   function setPermValuesOneLevel(data, ext) {
     const modelPerm = modelPermByType(rolePerms, ext.model, ext.permType)
     if (modelPerm?.def?.set) {
-      const permSet = getCtxValuesForPerm(modelPerm.def.set, ctx)
+      const permSet = getCtxValuesForPerm(modelPerm.def.set, ctx, data)
       data = merge(data, permSet)
     }
     return data
@@ -649,11 +649,13 @@ function modelPermByType(perms, model, permType) {
   return perms.find((item) => item.model === model && item.type === permType)
 }
 
-function getCtxValuesForPerm(value, ctx) {
+function getCtxValuesForPerm(value, ctx, data?) {
   const flatPermVal = flatten(value)
   Object.keys(flatPermVal).forEach((key) => {
     if (flatPermVal[key] === 'ctx-userId') {
       flatPermVal[key] = parseInt(ctx.user.id)
+    } else if (flatPermVal[key].startsWith('ctx-fn-')) {
+      flatPermVal[key] = ctx.fns?.[flatPermVal[key].slice(7)](ctx, data, key)
     }
   })
   return unflatten(flatPermVal)
