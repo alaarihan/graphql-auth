@@ -272,11 +272,28 @@ function getFilteredModelsFields(perms): ModelFieldsByPermType {
         ) {
           modelFilteredOps.push(`${opName}Many`)
         }
+        if (
+          Array.isArray(modelFields.ops) &&
+          !modelFields.ops.includes(`${opName}One`)
+        ) {
+          modelFilteredOps.push(`${opName}One`)
+        }
+        if (
+          type === 'update' &&
+          Array.isArray(modelFields.ops) &&
+          !modelFields.ops.includes(`upsertOne`)
+        ) {
+          modelFilteredOps.push(`upsertOne`)
+        }
         if (type === 'read') {
           modelFilteredOps = modelFilteredOps.concat(
-            ['aggregate', 'count', 'subscription', 'findFirst'].filter(
-              (i) => !modelFields.ops.includes(i),
-            ),
+            [
+              'aggregate',
+              'count',
+              'subscription',
+              'findFirst',
+              'findUnique',
+            ].filter((i) => !modelFields.ops.includes(i)),
           )
         }
 
@@ -683,6 +700,20 @@ function getFilteredModelsOpsRootFields(filteredModelsFields) {
         }
         if (itemOps.includes('findFirst')) {
           rootFields.push(queryMap.findFirst(item.model))
+        }
+        if (itemOps.includes('findUnique')) {
+          rootFields.push(queryMap.findUnique(item.model))
+        }
+      } else {
+        if (itemOps.includes(`${opName}One`)) {
+          console.log(opName)
+          rootFields.push(queryMap[`${opName}One`](item.model))
+        }
+        if (
+          itemOps.includes(`upsertOne`) &&
+          !rootFields.includes(queryMap.upsertOne(item.model))
+        ) {
+          rootFields.push(queryMap.upsertOne(item.model))
         }
       }
     })
