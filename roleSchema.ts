@@ -706,7 +706,6 @@ function getFilteredModelsOpsRootFields(filteredModelsFields) {
         }
       } else {
         if (itemOps.includes(`${opName}One`)) {
-          console.log(opName)
           rootFields.push(queryMap[`${opName}One`](item.model))
         }
         if (
