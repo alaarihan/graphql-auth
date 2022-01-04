@@ -654,7 +654,10 @@ function getCtxValuesForPerm(value, ctx, data?) {
   Object.keys(flatPermVal).forEach((key) => {
     if (flatPermVal[key] === 'ctx-userId') {
       flatPermVal[key] = parseInt(ctx.user.id)
-    } else if (flatPermVal[key].startsWith('ctx-fn-')) {
+    } else if (
+      typeof flatPermVal[key] === 'string' &&
+      flatPermVal[key].startsWith('ctx-fn-')
+    ) {
       flatPermVal[key] = ctx.fns?.[flatPermVal[key].slice(7)](ctx, data, key)
     }
   })
