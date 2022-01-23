@@ -641,7 +641,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
     return select
   }
 
-  return resolve(root, args, ctx, info).catch((err) => console.log(err))
+  return resolve(root, args, ctx, info)
 }
 
 function modelPermByType(perms, model, permType) {
