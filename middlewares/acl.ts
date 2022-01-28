@@ -21,7 +21,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
   const rolePerms = await getRolePerms(ctx.user.role)
 
   if (args.select) {
-    args.select = mergeNestedModelCheckWithWhere(args.select, ext)
+    args.select = await mergeNestedModelCheckWithWhere(args.select, ext)
   }
 
   if (['updateOne', 'findUnique'].includes(ext.op)) {
@@ -38,7 +38,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
       'deleteMany',
     ].includes(ext.op)
   ) {
-    args.where = mergeModelCheckWithWhere(args.where, ext)
+    args.where = await mergeModelCheckWithWhere(args.where, ext)
   }
 
   if (['updateOne', 'createOne'].includes(ext.op)) {
@@ -49,15 +49,15 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
     await checkModelItemsExist(args.where, ctx, ext)
   } else if (ext.op === 'createMany') {
     args.data.forEach(async (_item, index) => {
-      args.data[index] = setPermValuesOneLevel(args.data[index], ext)
+      args.data[index] = await setPermValuesOneLevel(args.data[index], ext)
       await checkItemACL(args.data[index], ext)
     })
   } else if (ext.op === 'updateMany') {
-    args.data = setPermValuesOneLevel(args.data, ext)
+    args.data = await setPermValuesOneLevel(args.data, ext)
     await checkItemACL(args.data, ext)
   } else if (ext.op === 'upsertOne') {
     ext.permType = 'CREATE'
-    args.create = setPermValuesOneLevel(args.create, ext)
+    args.create = await setPermValuesOneLevel(args.create, ext)
     await checkItemACL(args.create, ext)
     ext.permType = 'UPDATE'
     const modelPerm = modelPermByType(rolePerms, ext.model, ext.permType)
@@ -67,7 +67,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
         await checkModelItemsExist(args.update, ctx, ext)
       }
     }
-    args.update = setPermValuesOneLevel(args.update, ext)
+    args.update = await setPermValuesOneLevel(args.update, ext)
     await checkItemACL(args.update, ext)
   }
 
@@ -269,10 +269,10 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
     return true
   }
 
-  function setPermValuesOneLevel(data, ext) {
+  async function setPermValuesOneLevel(data, ext) {
     const modelPerm = modelPermByType(rolePerms, ext.model, ext.permType)
     if (modelPerm?.def?.set) {
-      const permSet = getCtxValuesForPerm(modelPerm.def.set, ctx, data)
+      const permSet = await getCtxValuesForPerm(modelPerm.def.set, ctx, data)
       data = merge(data, permSet)
     }
     return data
@@ -281,7 +281,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
   async function checkItemACL(data, ext) {
     const modelPerm = modelPermByType(rolePerms, ext.model, ext.permType)
     if (modelPerm?.def?.check) {
-      const permCheck = getCtxValuesForPerm(modelPerm.def.check, ctx)
+      const permCheck = await getCtxValuesForPerm(modelPerm.def.check, ctx)
       const checkResult = await checkItem(permCheck, data, ext)
       if (!checkResult) {
         throw new Error(
@@ -292,16 +292,16 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
     return true
   }
 
-  function mergeModelCheckWithWhere(where, ext) {
+  async function mergeModelCheckWithWhere(where, ext) {
     const modelPerm = modelPermByType(rolePerms, ext.model, ext.permType)
     if (modelPerm?.def?.check) {
-      const permCheck = getCtxValuesForPerm(modelPerm.def.check, ctx)
+      const permCheck = await getCtxValuesForPerm(modelPerm.def.check, ctx)
       where = mergeCheckWithWhere(where, permCheck)
     }
     return where
   }
 
-  function setPermValues(data, ext) {
+  async function setPermValues(data, ext) {
     const itemOps = [
       'create',
       'update',
@@ -310,7 +310,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
       'connectOrCreate',
       'upsert',
     ]
-    data = setPermValuesOneLevel(data, ext)
+    data = await setPermValuesOneLevel(data, ext)
     for (const key in data) {
       if (Object.keys(data[key]).some((someKey) => itemOps.includes(someKey))) {
         const relModel = getNestedFieldModelName(ext.model, key)
@@ -321,15 +321,15 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
               permType: 'CREATE',
             }
             if (!Array.isArray(data[key][op])) {
-              data[key][op] = setPermValuesOneLevel(data[key][op], relExt)
-              data[key][op] = setPermValues(data[key][op], relExt)
+              data[key][op] = await setPermValuesOneLevel(data[key][op], relExt)
+              data[key][op] = await setPermValues(data[key][op], relExt)
             } else {
-              data[key][op].forEach((_item, index) => {
-                data[key][op][index] = setPermValuesOneLevel(
+              data[key][op].forEach(async (_item, index) => {
+                data[key][op][index] = await setPermValuesOneLevel(
                   data[key][op][index],
                   relExt,
                 )
-                data[key][op][index] = setPermValues(
+                data[key][op][index] = await setPermValues(
                   data[key][op][index],
                   relExt,
                 )
@@ -341,14 +341,14 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
               permType: 'UPDATE',
             }
             if (!Array.isArray(data[key][op])) {
-              data[key][op].data = setPermValuesOneLevel(
+              data[key][op].data = await setPermValuesOneLevel(
                 data[key][op].data,
                 relExt,
               )
               data[key][op].data = setPermValues(data[key][op].data, relExt)
             } else {
-              data[key][op].forEach((_item, index) => {
-                data[key][op][index].data = setPermValuesOneLevel(
+              data[key][op].forEach(async (_item, index) => {
+                data[key][op][index].data = await setPermValuesOneLevel(
                   data[key][op][index].data,
                   relExt,
                 )
@@ -359,8 +359,8 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
               })
             }
           } else if (op === 'createMany') {
-            data[key][op].data.forEach((_item, index) => {
-              data[key][op].data[index] = setPermValuesOneLevel(
+            data[key][op].data.forEach(async (_item, index) => {
+              data[key][op].data[index] = await setPermValuesOneLevel(
                 data[key][op].data[index],
                 {
                   model: relModel,
@@ -374,13 +374,13 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
               permType: 'UPDATE',
             }
             if (!Array.isArray(data[key][op])) {
-              data[key][op].data = setPermValuesOneLevel(
+              data[key][op].data = await setPermValuesOneLevel(
                 data[key][op].data,
                 relExt,
               )
             } else {
               data[key][op].forEach(async (_item, index) => {
-                data[key][op][index].data = setPermValuesOneLevel(
+                data[key][op][index].data = await setPermValuesOneLevel(
                   data[key][op][index].data,
                   relExt,
                 )
@@ -392,13 +392,13 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
               permType: 'CREATE',
             }
             if (!Array.isArray(data[key][op])) {
-              data[key][op].create = setPermValuesOneLevel(
+              data[key][op].create = await setPermValuesOneLevel(
                 data[key][op].create,
                 relExt,
               )
             } else {
-              data[key][op].forEach((_item, index) => {
-                data[key][op][index].create = setPermValuesOneLevel(
+              data[key][op].forEach(async (_item, index) => {
+                data[key][op][index].create = await setPermValuesOneLevel(
                   data[key][op][index].create,
                   relExt,
                 )
@@ -406,14 +406,14 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
             }
           } else if (op === 'upsert') {
             if (!Array.isArray(data[key][op])) {
-              data[key][op].create = setPermValuesOneLevel(
+              data[key][op].create = await setPermValuesOneLevel(
                 data[key][op].create,
                 {
                   model: relModel,
                   permType: 'CREATE',
                 },
               )
-              data[key][op].update = setPermValuesOneLevel(
+              data[key][op].update = await setPermValuesOneLevel(
                 data[key][op].update,
                 {
                   model: relModel,
@@ -421,15 +421,15 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
                 },
               )
             } else {
-              data[key][op].forEach((_item, index) => {
-                data[key][op][index].create = setPermValuesOneLevel(
+              data[key][op].forEach(async (_item, index) => {
+                data[key][op][index].create = await setPermValuesOneLevel(
                   data[key][op][index].create,
                   {
                     model: relModel,
                     permType: 'CREATE',
                   },
                 )
-                data[key][op][index].update = setPermValuesOneLevel(
+                data[key][op][index].update = await setPermValuesOneLevel(
                   data[key][op][index].update,
                   {
                     model: relModel,
@@ -518,13 +518,13 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
               permType: 'UPDATE',
             }
             if (!Array.isArray(data[key][op])) {
-              data[key][op].where = mergeModelCheckWithWhere(
+              data[key][op].where = await mergeModelCheckWithWhere(
                 data[key][op].where,
                 relExt,
               )
             } else {
               data[key][op].forEach(async (_item, index) => {
-                data[key][op][index].where = mergeModelCheckWithWhere(
+                data[key][op][index].where = await mergeModelCheckWithWhere(
                   data[key][op][index].where,
                   relExt,
                 )
@@ -536,10 +536,13 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
               permType: 'DELETE',
             }
             if (!Array.isArray(data[key][op])) {
-              data[key][op] = mergeModelCheckWithWhere(data[key][op], relExt)
+              data[key][op] = await mergeModelCheckWithWhere(
+                data[key][op],
+                relExt,
+              )
             } else {
               data[key][op].forEach(async (_item, index) => {
-                data[key][op][index] = mergeModelCheckWithWhere(
+                data[key][op][index] = await mergeModelCheckWithWhere(
                   data[key][op][index],
                   relExt,
                 )
@@ -606,7 +609,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
     }
   }
 
-  function mergeNestedModelCheckWithWhere(select, ext) {
+  async function mergeNestedModelCheckWithWhere(select, ext) {
     for (const key in select) {
       if (typeof select[key] === 'object' && select[key].select) {
         const relModel = getNestedFieldModelName(ext.model, key)
@@ -620,14 +623,17 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
               if (!select[key].where) {
                 select[key].where = {}
               }
-              const permCheck = getCtxValuesForPerm(modelPerm.def.check, ctx)
+              const permCheck = await getCtxValuesForPerm(
+                modelPerm.def.check,
+                ctx,
+              )
               select[key].where = mergeCheckWithWhere(
                 select[key].where,
                 permCheck,
               )
             }
           }
-          select[key].select = mergeNestedModelCheckWithWhere(
+          select[key].select = await mergeNestedModelCheckWithWhere(
             select[key].select,
             {
               model: relModel,
@@ -649,18 +655,20 @@ function modelPermByType(perms, model, permType) {
   return perms.find((item) => item.model === model && item.type === permType)
 }
 
-function getCtxValuesForPerm(value, ctx, data?) {
+async function getCtxValuesForPerm(value, ctx, data?) {
   const flatPermVal = flatten(value)
-  Object.keys(flatPermVal).forEach((key) => {
+  for (const key of Object.keys(flatPermVal)) {
     if (flatPermVal[key] === 'ctx-userId') {
-      flatPermVal[key] = parseInt(ctx.user.id)
+      flatPermVal[key] = ctx.user.id
     } else if (
       typeof flatPermVal[key] === 'string' &&
-      flatPermVal[key].startsWith('ctx-fn-')
+      flatPermVal[key].startsWith('ctx-fn-') &&
+      ctx.fns?.[flatPermVal[key].slice(7)]
     ) {
-      flatPermVal[key] = ctx.fns?.[flatPermVal[key].slice(7)](ctx, data, key)
+      const ctxFn = ctx.fns[flatPermVal[key].slice(7)]
+      flatPermVal[key] = await ctxFn(ctx, data, key)
     }
-  })
+  }
   return unflatten(flatPermVal)
 }
 
@@ -734,7 +742,7 @@ export async function checkModelItemsExist(data, ctx, ext, thrw = true) {
   const rolePerms = await getRolePerms(ctx.user.role)
   const modelPerm = modelPermByType(rolePerms, ext.model, ext.permType)
   if (modelPerm?.def?.check) {
-    const permCheck = getCtxValuesForPerm(modelPerm.def.check, ctx)
+    const permCheck = await getCtxValuesForPerm(modelPerm.def.check, ctx)
     const existingTtem = await itemsExist(permCheck, data, ext.model)
     if (!existingTtem && thrw) {
       throw new Error(
