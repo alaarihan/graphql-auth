@@ -600,9 +600,9 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
             if (!Array.isArray(data[key][op])) {
               await checkUpsert(data[key][op], relExt)
             } else {
-              data[key][op].forEach(async (item) => {
-                await checkUpsert(item, relExt)
-              })
+              for (let index = 0; index < data[key][op].length; index++) {
+                await checkUpsert(data[key][op][index], relExt)
+              }
             }
           } else if (['connect', 'set', 'disconnect'].includes(op)) {
             if (op === 'disconnect' && typeof data[key][op] === 'boolean')
