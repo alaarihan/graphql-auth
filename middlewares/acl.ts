@@ -42,7 +42,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
   }
 
   if (['updateOne', 'createOne'].includes(ext.op)) {
-    args.data = setPermValues(args.data, ext)
+    args.data = await setPermValues(args.data, ext)
     await checkItemACL(args.data, ext)
     args.data = await checkNestedFieldsModelsACL(args.data, ext)
   } else if (ext.op === 'deleteOne') {
@@ -345,14 +345,17 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
                 data[key][op].data,
                 relExt,
               )
-              data[key][op].data = setPermValues(data[key][op].data, relExt)
+              data[key][op].data = await setPermValues(
+                data[key][op].data,
+                relExt,
+              )
             } else {
               data[key][op].forEach(async (_item, index) => {
                 data[key][op][index].data = await setPermValuesOneLevel(
                   data[key][op][index].data,
                   relExt,
                 )
-                data[key][op][index].data = setPermValues(
+                data[key][op][index].data = await setPermValues(
                   data[key][op][index].data,
                   relExt,
                 )
@@ -478,33 +481,62 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
                 relExt,
               )
             } else {
-              data[key][op].forEach(async (_item, index) => {
+              for (let index = 0; index < data[key][op].length; index++) {
                 await checkItemACL(data[key][op][index], relExt)
                 data[key][op][index] = await checkNestedFieldsModelsACL(
                   data[key][op][index],
                   relExt,
                 )
-              })
+              }
             }
           } else if (op === 'update') {
             const relExt = {
               model: relModel,
               permType: 'UPDATE',
             }
-            if (data[key][op].where) {
-              await checkModelItemsExist(data[key][op].where, ctx, relExt)
+
+            if (!Array.isArray(data[key][op])) {
+              if (data[key][op].where) {
+                await checkModelItemsExist(data[key][op].where, ctx, relExt)
+              }
+              await checkItemACL(data[key][op].data, relExt)
+              data[key][op].data = await checkNestedFieldsModelsACL(
+                data[key][op].data,
+                relExt,
+              )
+            } else {
+              for (let index = 0; index < data[key][op].length; index++) {
+                if (data[key][op][index].where) {
+                  await checkModelItemsExist(
+                    data[key][op][index].where,
+                    ctx,
+                    relExt,
+                  )
+                }
+                await checkItemACL(data[key][op][index].data, relExt)
+                data[key][op][index].data = await checkNestedFieldsModelsACL(
+                  data[key][op][index].data,
+                  relExt,
+                )
+              }
             }
-            await checkItemACL(data[key][op].data, relExt)
-            data[key][op].data = await checkNestedFieldsModelsACL(
-              data[key][op].data,
-              relExt,
-            )
           } else if (op === 'delete' && data[key][op].where) {
             const relExt = {
               model: relModel,
               permType: 'DELETE',
             }
-            await checkModelItemsExist(data[key][op].where, ctx, relExt)
+            if (!Array.isArray(data[key][op])) {
+              await checkModelItemsExist(data[key][op].where, ctx, relExt)
+            } else {
+              // Todo: make one where for the whole items instead of the loop
+              for (let index = 0; index < data[key][op].length; index++) {
+                await checkModelItemsExist(
+                  data[key][op][index].where,
+                  ctx,
+                  relExt,
+                )
+              }
+            }
           } else if (op === 'createMany') {
             data[key][op].forEach(async (_item, index) => {
               await checkItemACL(data[key][op].data[index], {
