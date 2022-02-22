@@ -8,10 +8,14 @@ import { flatten, unflatten } from 'flat'
 
 export const acl = async (resolve, root, args, ctx, info) => {
   if (['Query', 'Mutation'].includes(info.path.typename)) {
-    const ext = info.parentType.getFields()[info.fieldName].extensions
-    if (!ext?.op || ctx.user?.role === 'ROOT')
-      return resolve(root, args, ctx, info)
-    return checkAcl(resolve, root, args, ctx, info, ext)
+    try {
+      const ext = info.parentType.getFields()[info.fieldName].extensions
+      if (!ext?.op || ctx.user?.role === 'ROOT')
+        return resolve(root, args, ctx, info)
+      return checkAcl(resolve, root, args, ctx, info, ext)
+    } catch (e) {
+      throw e
+    }
   } else {
     return resolve(root, args, ctx, info)
   }
@@ -312,7 +316,11 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
     ]
     data = await setPermValuesOneLevel(data, ext)
     for (const key in data) {
-      if (Object.keys(data[key]).some((someKey) => itemOps.includes(someKey))) {
+      if (
+        data[key] &&
+        typeof data[key] === 'object' &&
+        Object.keys(data[key]).some((someKey) => itemOps.includes(someKey))
+      ) {
         const relModel = getNestedFieldModelName(ext.model, key)
         for (const op in data[key]) {
           if (op === 'create') {
@@ -464,6 +472,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
     ]
     for (const key in data) {
       if (
+        data[key] &&
         typeof data[key] === 'object' &&
         Object.keys(data[key]).some((someKey) => itemOps.includes(someKey))
       ) {
@@ -738,7 +747,7 @@ async function itemsExist(check, item, model) {
         where: finalWhere,
       })
       .catch((err) => {
-        console.log(err)
+        console.error(err)
       })
     if (!finalItems) return false
   } else {
@@ -753,7 +762,7 @@ async function itemsExist(check, item, model) {
         where: originalWhere,
       })
       .catch((err) => {
-        console.log(err)
+        console.error(err)
       })
     const finalWhere = mergeCheckWithWhere(originalWhere, check)
     const finalItems = await prisma[camelCase(model)]
@@ -761,7 +770,7 @@ async function itemsExist(check, item, model) {
         where: finalWhere,
       })
       .catch((err) => {
-        console.log(err)
+        console.error(err)
       })
 
     if (!finalItems || finalItems < originalItems) return false
