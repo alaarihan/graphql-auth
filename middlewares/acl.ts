@@ -52,10 +52,10 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
   } else if (ext.op === 'deleteOne') {
     await checkModelItemsExist(args.where, ctx, ext)
   } else if (ext.op === 'createMany') {
-    args.data.forEach(async (_item, index) => {
+    for (let index = 0; index < args.data.length; index++) {
       args.data[index] = await setPermValuesOneLevel(args.data[index], ext)
       await checkItemACL(args.data[index], ext)
-    })
+    }
   } else if (ext.op === 'updateMany') {
     args.data = await setPermValuesOneLevel(args.data, ext)
     await checkItemACL(args.data, ext)
@@ -332,7 +332,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
               data[key][op] = await setPermValuesOneLevel(data[key][op], relExt)
               data[key][op] = await setPermValues(data[key][op], relExt)
             } else {
-              data[key][op].forEach(async (_item, index) => {
+              for (let index = 0; index < data[key][op].length; index++) {
                 data[key][op][index] = await setPermValuesOneLevel(
                   data[key][op][index],
                   relExt,
@@ -341,7 +341,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
                   data[key][op][index],
                   relExt,
                 )
-              })
+              }
             }
           } else if (op === 'update') {
             const relExt = {
@@ -358,7 +358,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
                 relExt,
               )
             } else {
-              data[key][op].forEach(async (_item, index) => {
+              for (let index = 0; index < data[key][op].length; index++) {
                 data[key][op][index].data = await setPermValuesOneLevel(
                   data[key][op][index].data,
                   relExt,
@@ -367,10 +367,10 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
                   data[key][op][index].data,
                   relExt,
                 )
-              })
+              }
             }
           } else if (op === 'createMany') {
-            data[key][op].data.forEach(async (_item, index) => {
+            for (let index = 0; index < data[key][op].data.length; index++) {
               data[key][op].data[index] = await setPermValuesOneLevel(
                 data[key][op].data[index],
                 {
@@ -378,7 +378,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
                   permType: 'CREATE',
                 },
               )
-            })
+            }
           } else if (op === 'updateMany') {
             const relExt = {
               model: relModel,
@@ -390,12 +390,12 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
                 relExt,
               )
             } else {
-              data[key][op].forEach(async (_item, index) => {
+              for (let index = 0; index < data[key][op].length; index++) {
                 data[key][op][index].data = await setPermValuesOneLevel(
                   data[key][op][index].data,
                   relExt,
                 )
-              })
+              }
             }
           } else if (op === 'connectOrCreate') {
             const relExt = {
@@ -408,12 +408,12 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
                 relExt,
               )
             } else {
-              data[key][op].forEach(async (_item, index) => {
+              for (let index = 0; index < data[key][op].length; index++) {
                 data[key][op][index].create = await setPermValuesOneLevel(
                   data[key][op][index].create,
                   relExt,
                 )
-              })
+              }
             }
           } else if (op === 'upsert') {
             if (!Array.isArray(data[key][op])) {
@@ -432,7 +432,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
                 },
               )
             } else {
-              data[key][op].forEach(async (_item, index) => {
+              for (let index = 0; index < data[key][op].length; index++) {
                 data[key][op][index].create = await setPermValuesOneLevel(
                   data[key][op][index].create,
                   {
@@ -447,7 +447,7 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
                     permType: 'UPDATE',
                   },
                 )
-              })
+              }
             }
           }
         }
@@ -547,12 +547,12 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
               }
             }
           } else if (op === 'createMany') {
-            data[key][op].forEach(async (_item, index) => {
+            for (let index = 0; index < data[key][op].length; index++) {
               await checkItemACL(data[key][op].data[index], {
                 model: relModel,
                 permType: 'CREATE',
               })
-            })
+            }
           } else if (op === 'updateMany') {
             const relExt = {
               model: relModel,
@@ -564,12 +564,12 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
                 relExt,
               )
             } else {
-              data[key][op].forEach(async (_item, index) => {
+              for (let index = 0; index < data[key][op].length; index++) {
                 data[key][op][index].where = await mergeModelCheckWithWhere(
                   data[key][op][index].where,
                   relExt,
                 )
-              })
+              }
             }
           } else if (op === 'deleteMany') {
             const relExt = {
@@ -582,12 +582,12 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
                 relExt,
               )
             } else {
-              data[key][op].forEach(async (_item, index) => {
+              for (let index = 0; index < data[key][op].length; index++) {
                 data[key][op][index] = await mergeModelCheckWithWhere(
                   data[key][op][index],
                   relExt,
                 )
-              })
+              }
             }
           } else if (op === 'connectOrCreate') {
             const relExt = {
@@ -597,9 +597,9 @@ async function checkAcl(resolve, root, args, ctx: AppContext, info, ext) {
             if (!Array.isArray(data[key][op])) {
               await checkConnectOrCreate(data[key][op], relExt)
             } else {
-              data[key][op].forEach(async (item) => {
-                await checkConnectOrCreate(item, relExt)
-              })
+              for (let index = 0; index < data[key][op].length; index++) {
+                await checkConnectOrCreate(data[key][op][index], relExt)
+              }
             }
           } else if (op === 'upsert') {
             const relExt = {
