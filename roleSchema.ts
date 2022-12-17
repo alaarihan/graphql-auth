@@ -1,4 +1,3 @@
-const { dmmf } = require('@prisma/client')
 import { GraphQLSchema } from 'graphql'
 import {
   FilterInputObjectFields,
@@ -9,14 +8,20 @@ import {
   TransformEnumValues,
 } from '@graphql-tools/wrap'
 import { applySchemaTransforms } from '@graphql-tools/delegate'
+import { getSchema, getDMMF} from '@prisma/internals'
 
 import pluralize from 'pluralize'
 import options from './options'
 import { getRolePerms } from './common/rolePerms'
 
+let dmmf = null as any
 const queryMap = options.queryMap
 
 export async function getRoleSchema(schema: GraphQLSchema, role) {
+  const dmmfSchema = await getSchema()
+  dmmf = await getDMMF({
+    datamodel: dmmfSchema,
+  })
   const perms = (await getRolePerms(role)) || []
   const schemaFilters = getRoleSchemaTransformations(perms)
   const modSchema = applySchemaTransforms(schema, {
