@@ -1,4 +1,4 @@
-const { dmmf } = require('@prisma/client')
+import { getSchema, getDMMF } from '@prisma/internals'
 import {
   GraphQLString,
   GraphQLInt,
@@ -9,6 +9,8 @@ import {
   GraphQLInputObjectType,
 } from 'graphql'
 import { SimpleStringFilter } from '../../models/inputs'
+
+let dmmf = null as any
 
 export const ModelWhereInput = new GraphQLInputObjectType({
   name: 'ModelWhereInput',
@@ -111,6 +113,10 @@ export const authQueries = {
       where: { type: ModelWhereInput },
     },
     async resolve(_root, args, ctx) {
+      const dmmfSchema = await getSchema()
+      dmmf = await getDMMF({
+        datamodel: dmmfSchema,
+      })
       let models = dmmf.datamodel.models
       if (args.where?.name?.equals) {
         models = models.filter((model) => model.name === args.where.name.equals)
@@ -135,6 +141,10 @@ export const authQueries = {
     ),
 
     async resolve(_root, args, ctx) {
+      const dmmfSchema = await getSchema()
+      dmmf = await getDMMF({
+        datamodel: dmmfSchema,
+      })
       return dmmf.schema.enumTypes.model.find(
         (item) => item.name === 'UserRole',
       )?.values
